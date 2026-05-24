@@ -1,29 +1,8 @@
----
-title: EcomQA
-emoji: ⚡
-colorFrom: indigo
-colorTo: purple
-sdk: docker
-pinned: false
----
+
 
 # EcomQA — E-Commerce Product Intelligence Engine
 
 **Production-grade NLP pipeline: BERT QA + Flan-T5 + RAG + Multilingual + Sentiment + Smart UI**
-
----
-
-## ⭐ New in v2 — High-Impact UX Features
-
-| # | Feature | What it does |
-|---|---------|--------------|
-| ① | **Product Summary Card** | Auto-extracts title, price, rating, review count, and key specs the moment a URL is scraped — no need to ask. |
-| ② | **Smart Question Suggestions** | Detects product type (smartphone, laptop, headphones, TV, etc.) and shows the 5 most relevant questions as clickable chips. |
-| ③ | **Confidence Explanation** | Every answer now comes with a 1-line plain-English explanation of *why* the confidence score is what it is. |
-| ④ | **Review Summary** | One-click extraction of top-3 praised points + top-3 complained-about points + an overall verdict line. |
-| ⑤ | **Dark / Light Mode** | Theme toggle in the navbar; preference persists across sessions via `localStorage`. |
-
-All of the above run **client-side or in pure-Python (no extra model downloads)**, so the user experience is instant.
 
 ---
 
@@ -104,13 +83,7 @@ docker build -t ecomqa .        # models pre-baked here (~3–4 min)
 docker run -p 5000:5000 ecomqa
 ```
 
-## Fine-tune on Amazon QA (optional, Fix #8)
 
-```bash
-pip install datasets accelerate
-python scripts/fine_tune.py --epochs 3 --max_samples 50000 --output_dir models/bert-amazon-qa
-# Then update src/models/qa_model.py: EN_MODEL = "models/bert-amazon-qa"
-```
 
 ---
 
@@ -159,7 +132,3 @@ ecom-qa-bert/
 ```
 
 ---
-
-## License
-
-MIT
