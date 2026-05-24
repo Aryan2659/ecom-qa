@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Query History{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h1>Your Query History</h1>
+  <a href="{{ url_for('export_history') }}" class="btn btn-secondary">⬇ Export CSV</a>
+</div>
+
+{% if queries %}
+<div class="card">
+  <div class="history-filters">
+    <input id="filterInput" type="text" placeholder="Search questions or answers…" class="input-field input-sm" />
+    <select id="intentFilter" class="select-field">
+      <option value="">All intents</option>
+      <option value="factual">Factual</option>
+      <option value="subjective">Subjective</option>
+      <option value="hybrid">Hybrid</option>
+    </select>
+  </div>
+
+  <table class="history-table" id="historyTable">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Question</th>
+        <th>Answer</th>
+        <th>Confidence</th>
+        <th>Intent</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for q in queries %}
+      <tr data-intent="{{ q.intent or '' }}">
+        <td class="col-date">{{ q.timestamp }}</td>
+        <td class="col-question">{{ q.question }}</td>
+        <td class="col-answer">{{ q.answer[:120] }}{% if q.answer|length > 120 %}…{% endif %}</td>
+        <td class="col-conf">
+          {% if q.confidence is not none %}
+            <span class="badge badge-{{ 'high' if q.confidence >= 0.7 else ('medium' if q.confidence >= 0.4 else 'low') }}">
+              {{ (q.confidence * 100)|round|int }}%
+            </span>
+          {% else %}—{% endif %}
+        </td>
+        <td class="col-intent">
+          <span class="badge badge-intent">{{ q.intent or '—' }}</span>
+        </td>
+        <td>
+          <button class="btn btn-ghost btn-sm delete-btn" data-id="{{ q.id }}">✕</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="history-meta">
+    Showing <span id="visibleCount">{{ queries|length }}</span> of {{ queries|length }} queries
+  </div>
+</div>
+
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">💬</div>
+  <h2>No history yet</h2>
+  <p>Your questions will appear here once you start asking them while logged in.</p>
+  <a href="{{ url_for('index') }}" class="btn btn-primary">Start asking</a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Client-side filter ───────────────────────────────────────────────────────
+const filterInput  = document.getElementById("filterInput");
+const intentFilter = document.getElementById("intentFilter");
+const table        = document.getElementById("historyTable");
+const countEl      = document.getElementById("visibleCount");
+
+function applyFilter() {
+  if (!table) return;
+  const q      = filterInput.value.toLowerCase();
+  const intent = intentFilter.value;
+  let visible  = 0;
+
+  table.querySelectorAll("tbody tr").forEach(row => {
+    const text      = row.textContent.toLowerCase();
+    const rowIntent = row.dataset.intent;
+    const show = (!q || text.includes(q)) && (!intent || rowIntent === intent);
+    row.classList.toggle("hidden", !show);
+    if (show) visible++;
+  });
+  if (countEl) countEl.textContent = visible;
+}
+
+filterInput?.addEventListener("input",  applyFilter);
+intentFilter?.addEventListener("change", applyFilter);
+
+// ── Delete single query ──────────────────────────────────────────────────────
+document.querySelectorAll(".delete-btn").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    if (!confirm("Delete this query?")) return;
+    const id = btn.dataset.id;
+    const res = await fetch(`/history/delete/${id}`, { method: "POST" });
+    if (res.ok) btn.closest("tr").remove();
+  });
+});
+</script>
+{% endblock %}

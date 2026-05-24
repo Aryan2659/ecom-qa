@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Ask{% endblock %}
+{% block content %}
+
+<div class="hero">
+  <h1>E-Commerce Product Intelligence</h1>
+  <p class="hero-sub">Paste a product URL or text — ask anything — get instant answers powered by BERT + RAG</p>
+</div>
+
+<!-- ── Input Panel ── -->
+<div class="card">
+  <div class="tab-group" id="inputTabs">
+    <button class="tab active" data-tab="url">🔗 URL Mode</button>
+    <button class="tab"        data-tab="text">📄 Text Mode</button>
+  </div>
+
+  <!-- URL input -->
+  <div class="tab-panel active" id="tab-url">
+    <div class="input-row">
+      <input id="urlInput" type="url" placeholder="https://www.amazon.in/dp/… or Flipkart URL" class="input-field" />
+      <button id="scrapeBtn" class="btn btn-secondary">Scrape</button>
+    </div>
+    <div id="scrapeStatus" class="status-msg"></div>
+  </div>
+
+  <!-- Text input -->
+  <div class="tab-panel" id="tab-text">
+    <textarea id="textInput" rows="7" placeholder="Paste product description, specs, or reviews here…" class="input-field"></textarea>
+    <div class="char-count">
+      <span id="charCount">0</span> characters
+      <button id="analyzeTextBtn" class="btn btn-ghost btn-sm" style="margin-left:auto">Analyze text</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Product Summary Card (Feature #1) ── -->
+<div class="card hidden product-summary-card" id="summaryCard">
+  <div class="summary-head">
+    <h2 class="section-title" style="margin:0">📦 Product Summary</h2>
+    <span class="badge badge-type" id="productTypeBadge">—</span>
+  </div>
+  <div class="summary-title" id="summaryTitle">—</div>
+
+  <div class="summary-stats">
+    <div class="stat-pill hidden" id="statPrice">
+      <div class="stat-label">Price</div>
+      <div class="stat-value" id="statPriceVal">—</div>
+    </div>
+    <div class="stat-pill hidden" id="statRating">
+      <div class="stat-label">Rating</div>
+      <div class="stat-value" id="statRatingVal">—</div>
+    </div>
+    <div class="stat-pill hidden" id="statReviews">
+      <div class="stat-label">Reviews</div>
+      <div class="stat-value" id="statReviewsVal">—</div>
+    </div>
+  </div>
+
+  <div class="spec-grid" id="specGrid"></div>
+  <p class="summary-note" id="summaryNote">Auto-extracted from the page — verify with the live listing before purchase.</p>
+</div>
+
+<!-- ── Smart Suggestions (Feature #2) ── -->
+<div class="card hidden" id="suggestionsCard">
+  <h2 class="section-title">💡 Suggested Questions</h2>
+  <p class="muted-text" id="suggestionsHint">Based on what was detected on this page, here are questions worth asking:</p>
+  <div class="suggestion-chips" id="suggestionChips"></div>
+</div>
+
+<!-- ── Question Panel ── -->
+<div class="card" id="questionPanel">
+  <h2 class="section-title">Ask a Question</h2>
+  <div class="input-row">
+    <input id="questionInput" type="text"
+           placeholder="e.g. What is the battery capacity?  /  Is the build quality good?"
+           class="input-field" />
+    <button id="askBtn" class="btn btn-primary">Ask</button>
+  </div>
+
+  <div class="intent-badge-row">
+    <span class="label">Detected intent:</span>
+    <span id="intentBadge" class="badge badge-neutral">—</span>
+  </div>
+</div>
+
+<!-- ── Answer Panel ── -->
+<div class="card hidden" id="answerPanel">
+  <h2 class="section-title">Answer</h2>
+
+  <!-- QA Result -->
+  <div id="qaResult" class="hidden">
+    <div class="answer-box" id="answerText"></div>
+    <div class="meta-row">
+      <span class="badge" id="confidenceBadge">—</span>
+      <span class="badge badge-source" id="sourceBadge">—</span>
+      <span class="badge badge-lang"   id="langBadge">—</span>
+    </div>
+    <!-- Feature #3: Confidence Explanation -->
+    <div class="confidence-explanation hidden" id="confidenceExplanation"></div>
+
+    <div class="highlight-section hidden" id="highlightSection">
+      <p class="section-label">Context with answer highlighted:</p>
+      <div id="highlightedContext" class="context-box"></div>
+    </div>
+  </div>
+
+  <!-- Sentiment Result -->
+  <div id="sentimentResult" class="hidden">
+    <div class="sentiment-grid">
+      <div class="sentiment-card">
+        <div class="sentiment-stars" id="avgStars">—</div>
+        <div class="sentiment-label">Average Rating</div>
+      </div>
+      <div class="sentiment-card">
+        <div class="sentiment-overall" id="overallSentiment">—</div>
+        <div class="sentiment-label">Overall Sentiment</div>
+      </div>
+    </div>
+
+    <div class="star-distribution" id="starDistribution"></div>
+
+    <h3 class="section-label">Aspect Breakdown</h3>
+    <div id="aspectGrid" class="aspect-grid"></div>
+  </div>
+</div>
+
+<!-- ── Review Summary (Feature #5) ── -->
+<div class="card" id="reviewSummaryWrapper">
+  <div class="summary-head">
+    <h2 class="section-title" style="margin:0">⭐ Review Summary</h2>
+    <button id="generateReviewSummaryBtn" class="btn btn-ghost btn-sm">Generate</button>
+  </div>
+  <p class="muted-text" id="reviewSummaryHint">Top-3 praised + top-3 complained-about points, extracted from the text.</p>
+
+  <div class="hidden" id="reviewSummaryResult">
+    <p class="verdict-line" id="reviewVerdict"></p>
+    <div class="review-grid">
+      <div class="review-col">
+        <h3 class="review-col-title praise">👍 Praised</h3>
+        <ul class="review-list" id="praisedList"></ul>
+      </div>
+      <div class="review-col">
+        <h3 class="review-col-title complaint">👎 Complained</h3>
+        <ul class="review-list" id="complainedList"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Session History ── -->
+<div class="card" id="sessionHistory">
+  <h2 class="section-title">Session History <span id="historyCount" class="badge badge-neutral">0</span></h2>
+  <div id="historyList" class="history-list"></div>
+  <button id="clearHistoryBtn" class="btn btn-ghost btn-sm hidden">Clear session history</button>
+</div>
+
+<!-- Loading overlay -->
+<div class="loader hidden" id="loader">
+  <div class="spinner"></div>
+  <p id="loaderMsg">Processing…</p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Passed from server-side
+const IS_AUTHENTICATED = {{ 'true' if current_user.is_authenticated else 'false' }};
+</script>
+{% endblock %}

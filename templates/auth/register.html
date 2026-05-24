@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <h1 class="auth-title">Create an account</h1>
+    <p class="auth-sub">Save your query history and compare products over time</p>
+
+    {% if error %}
+    <div class="alert alert-error">{{ error }}</div>
+    {% endif %}
+
+    <form id="registerForm" class="auth-form">
+      <label class="form-label">Username <span class="form-hint">(3–32 chars, letters/numbers/_)</span></label>
+      <input name="username" type="text" class="input-field" placeholder="your_username"
+             minlength="3" maxlength="32" pattern="[a-zA-Z0-9_]+" required />
+
+      <label class="form-label">Email <span class="form-hint">(optional)</span></label>
+      <input name="email" type="email" class="input-field" placeholder="you@example.com" />
+
+      <label class="form-label">Password <span class="form-hint">(min 8 characters)</span></label>
+      <input name="password" type="password" class="input-field" placeholder="••••••••"
+             minlength="8" required />
+
+      <button type="submit" class="btn btn-primary btn-full">Create account</button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="{{ url_for('login') }}">Log in</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("registerForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const body = {
+    username: fd.get("username"),
+    password: fd.get("password"),
+    email:    fd.get("email"),
+  };
+  const res  = await fetch("/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (data.success) window.location.href = "/login";
+  else {
+    const existing = document.querySelector(".alert-error");
+    if (existing) existing.remove();
+    document.querySelector(".auth-form").insertAdjacentHTML("afterbegin",
+      `<div class="alert alert-error">${data.error}</div>`);
+  }
+});
+</script>
+{% endblock %}

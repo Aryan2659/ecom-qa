@@ -1,0 +1,31 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+flask>=3.0.0
+flask-login>=0.6.3
+flask-cors>=4.0.0
+gunicorn>=21.2.0
+
+# ── Deep learning ─────────────────────────────────────────────────────────────
+torch>=2.1.0
+transformers>=4.40.0
+sentencepiece>=0.2.0          # required by T5 / XLM-RoBERTa tokenisers
+accelerate>=0.27.0            # for fine-tuning script
+
+# ── RAG / embeddings ─────────────────────────────────────────────────────────
+sentence-transformers>=2.7.0
+faiss-cpu>=1.8.0              # swap for faiss-gpu if you have CUDA
+
+# ── Scraping ──────────────────────────────────────────────────────────────────
+playwright>=1.44.0
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+
+# ── NLP utilities ─────────────────────────────────────────────────────────────
+langdetect>=1.0.9             # Fix #4 language detection
+
+# ── Auth ──────────────────────────────────────────────────────────────────────
+bcrypt>=4.1.0
+
+# ── Utilities ─────────────────────────────────────────────────────────────────
+numpy>=1.26.0
+scikit-learn>=1.4.0           # used by sentence-transformers internally
+gevent>=23.9.0

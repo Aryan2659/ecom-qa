@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}Compare Products{% endblock %}
+{% block content %}
+
+<div class="hero">
+  <h1>Compare Products Side-by-Side</h1>
+  <p class="hero-sub">Add 2–4 product URLs, ask the same question, and get parallel answers with a winner recommendation.</p>
+</div>
+
+<div class="card">
+  <h2 class="section-title">Product URLs</h2>
+  <div id="urlInputs">
+    <div class="url-row">
+      <span class="url-label">Product 1</span>
+      <input type="url" class="input-field compare-url" placeholder="https://amazon.in/…" />
+      <button class="btn btn-ghost remove-url hidden">✕</button>
+    </div>
+    <div class="url-row">
+      <span class="url-label">Product 2</span>
+      <input type="url" class="input-field compare-url" placeholder="https://amazon.in/…" />
+      <button class="btn btn-ghost remove-url hidden">✕</button>
+    </div>
+  </div>
+  <button id="addUrlBtn" class="btn btn-ghost btn-sm">+ Add another product (max 4)</button>
+</div>
+
+<div class="card">
+  <h2 class="section-title">Your Question</h2>
+  <div class="input-row">
+    <input id="compareQuestion" type="text"
+           placeholder="e.g. What is the battery life?  /  Which has better build quality?"
+           class="input-field" />
+    <button id="compareBtn" class="btn btn-primary">Compare</button>
+  </div>
+</div>
+
+<!-- Results -->
+<div class="hidden" id="compareResults">
+  <!-- Winner banner -->
+  <div class="winner-banner hidden" id="winnerBanner">
+    <span class="trophy">🏆</span>
+    <span id="winnerText">Best match: —</span>
+  </div>
+
+  <!-- Side-by-side cards -->
+  <div class="compare-grid" id="compareGrid"></div>
+</div>
+
+<!-- Loader -->
+<div class="loader hidden" id="loader">
+  <div class="spinner"></div>
+  <p>Scraping and analysing products in parallel…</p>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Add / remove URL rows ────────────────────────────────────────────────────
+const urlInputs  = document.getElementById("urlInputs");
+const addUrlBtn  = document.getElementById("addUrlBtn");
+let   urlCount   = 2;
+
+function updateRemoveButtons() {
+  const rows = urlInputs.querySelectorAll(".url-row");
+  rows.forEach((row, i) => {
+    row.querySelector(".remove-url").classList.toggle("hidden", rows.length <= 2);
+  });
+}
+
+addUrlBtn.addEventListener("click", () => {
+  if (urlCount >= 4) return;
+  urlCount++;
+  const row = document.createElement("div");
+  row.className = "url-row";
+  row.innerHTML = `
+    <span class="url-label">Product ${urlCount}</span>
+    <input type="url" class="input-field compare-url" placeholder="https://…" />
+    <button class="btn btn-ghost remove-url">✕</button>
+  `;
+  row.querySelector(".remove-url").addEventListener("click", () => {
+    row.remove();
+    urlCount--;
+    // Re-label
+    urlInputs.querySelectorAll(".url-row").forEach((r, i) => {
+      r.querySelector(".url-label").textContent = `Product ${i+1}`;
+    });
+    updateRemoveButtons();
+    if (urlCount < 4) addUrlBtn.classList.remove("hidden");
+  });
+  urlInputs.appendChild(row);
+  updateRemoveButtons();
+  if (urlCount >= 4) addUrlBtn.classList.add("hidden");
+});
+
+// ── Compare ──────────────────────────────────────────────────────────────────
+document.getElementById("compareBtn").addEventListener("click", async () => {
+  const urls = [...document.querySelectorAll(".compare-url")]
+    .map(el => el.value.trim()).filter(Boolean);
+  const question = document.getElementById("compareQuestion").value.trim();
+
+  if (urls.length < 2)      return showMsg("Please enter at least 2 product URLs.");
+  if (!question)            return showMsg("Please enter a question.");
+
+  showLoader(true);
+  document.getElementById("compareResults").classList.add("hidden");
+
+  try {
+    const res  = await fetch("/api/compare", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ urls, question }),
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    renderComparison(data);
+  } catch (e) {
+    showMsg("Error: " + e.message);
+  } finally {
+    showLoader(false);
+  }
+});
+
+function renderComparison(data) {
+  const grid = document.getElementById("compareGrid");
+  grid.innerHTML = "";
+
+  data.products.forEach((product, idx) => {
+    const card = document.createElement("div");
+    card.className = "compare-card" + (data.winner?.url === product.url ? " winner" : "");
+
+    let inner = `
+      <div class="compare-card-header">
+        <span class="product-num">Product ${idx + 1}</span>
+        ${data.winner?.url === product.url ? '<span class="winner-badge">🏆 Best</span>' : ''}
+      </div>
+      <div class="compare-url-display">${truncate(product.url, 50)}</div>
+    `;
+
+    if (product.error) {
+      inner += `<div class="error-msg">⚠ ${product.error}</div>`;
+    } else {
+      if (product.qa) {
+        inner += `
+          <div class="compare-answer">
+            <div class="compare-answer-label">Answer</div>
+            <div class="compare-answer-text">${product.qa.answer}</div>
+            <span class="badge badge-${confidenceClass(product.qa.confidence_score)}">
+              ${product.qa.confidence_label} (${pct(product.qa.confidence_score)})
+            </span>
+            <span class="badge badge-source">${product.qa.source}</span>
+          </div>`;
+      }
+      if (product.sentiment) {
+        inner += `
+          <div class="compare-sentiment">
+            <div class="compare-answer-label">Sentiment</div>
+            <div class="stars-display">${"★".repeat(Math.round(product.sentiment.average_stars))}${"☆".repeat(5 - Math.round(product.sentiment.average_stars))}</div>
+            <div>${product.sentiment.average_stars}/5 — ${product.sentiment.overall_sentiment}</div>
+          </div>`;
+      }
+    }
+    card.innerHTML = inner;
+    grid.appendChild(card);
+  });
+
+  // Winner banner
+  if (data.winner?.url) {
+    const idx = data.products.findIndex(p => p.url === data.winner.url);
+    document.getElementById("winnerText").textContent =
+      `Product ${idx + 1} is the best match (score: ${data.winner.score})`;
+    document.getElementById("winnerBanner").classList.remove("hidden");
+  }
+
+  document.getElementById("compareResults").classList.remove("hidden");
+}
+
+function truncate(s, n) { return s.length > n ? s.slice(0, n) + "…" : s; }
+function pct(s)          { return Math.round(s * 100) + "%"; }
+function confidenceClass(s) { return s >= 0.7 ? "high" : s >= 0.4 ? "medium" : "low"; }
+
+function showLoader(on) {
+  document.getElementById("loader").classList.toggle("hidden", !on);
+}
+function showMsg(msg) {
+  alert(msg);   // simple for now; can be replaced with inline toast
+}
+</script>
+{% endblock %}

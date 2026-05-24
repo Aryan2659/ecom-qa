@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>EcomQA Settings</title>
+  <style>
+    body {
+      margin: 0; padding: 1rem;
+      width: 280px;
+      background: #0f1117; color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+    }
+    h1 { font-size: 1rem; margin-bottom: 1rem; display: flex; align-items: center; gap: .4rem; }
+    label { display: block; font-size: .8rem; color: #94a3b8; margin-bottom: .3rem; }
+    input {
+      width: 100%; padding: .5rem .65rem;
+      background: #12141f; border: 1px solid #2a2d3e;
+      border-radius: 6px; color: #e2e8f0; font-family: inherit;
+      outline: none; margin-bottom: .75rem;
+    }
+    input:focus { border-color: #6366f1; }
+    button {
+      width: 100%; padding: .55rem;
+      background: #6366f1; color: #fff; border: none;
+      border-radius: 6px; font-weight: 600; cursor: pointer;
+    }
+    button:hover { background: #4f46e5; }
+    .status {
+      margin-top: .6rem; padding: .5rem .7rem;
+      border-radius: 6px; font-size: .8rem; display: none;
+    }
+    .status.ok  { background: rgba(34,197,94,.15); color: #86efac; display: block; }
+    .status.err { background: rgba(239,68,68,.15); color: #fca5a5; display: block; }
+    .hint { font-size: .72rem; color: #64748b; margin-top: .35rem; }
+  </style>
+</head>
+<body>
+
+<h1>⚡ EcomQA Settings</h1>
+
+<label for="backendUrl">Backend URL</label>
+<input id="backendUrl" type="url" placeholder="http://localhost:5000" />
+<div class="hint">Use your Hugging Face Spaces URL when deployed</div>
+
+<button id="saveBtn">Save & Test</button>
+<div id="status" class="status"></div>
+
+<script src="popup.js"></script>
+</body>
+</html>
